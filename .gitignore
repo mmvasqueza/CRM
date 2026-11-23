@@ -29,6 +29,7 @@ supabase/.temp/
 .rsc/sello.json
 .rsc/sello-log.jsonl
 .rsc/sello-findings.md
+.rsc/review-ledger.jsonl
 
 # OS / editor
 .DS_Store

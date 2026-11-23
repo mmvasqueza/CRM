@@ -1,0 +1,202 @@
+# CI — the merge bar of constitution v1.0.0 (Definition of Done), one job per test type.
+# App jobs start automatically once package.json exists (first feature branch scaffolds it);
+# until then only the always-on gates run.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Cancel superseded PR runs only; every push to main keeps its own CI result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  detect:
+    name: Detect app
+    runs-on: ubuntu-latest
+    outputs:
+      has_app: ${{ steps.check.outputs.has_app }}
+      has_db: ${{ steps.check.outputs.has_db }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          echo "has_app=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "has_db=$([ -f supabase/config.toml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      # Once the app exists, its preconditions are mandatory — fail loudly, never skip silently.
+      - name: App preconditions (P3, P8)
+        if: steps.check.outputs.has_app == 'true'
+        run: |
+          node -e 'const p=require("./package.json"); if(!/^pnpm@/.test(p.packageManager||"")){console.error("package.json must set \"packageManager\": \"pnpm@<version>\" (constitution P3)");process.exit(1)}'
+          [ -f pnpm-lock.yaml ] || { echo "pnpm-lock.yaml must be committed (P3)"; exit 1; }
+          ls playwright.config.* >/dev/null 2>&1 || { echo "Playwright config required once the app exists (P8)"; exit 1; }
+          [ -f supabase/config.toml ] || { echo "supabase/config.toml required once the app exists (P4)"; exit 1; }
+
+  # ---- Always-on gates ----------------------------------------------------
+  secrets:
+    name: Secret scan (P15)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists PR commits via the API
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  specs:
+    name: Spec gate (SDD)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npx -y @ericrisco/rsc@4.1.8 spec gate
+
+  # ---- App gates (run once package.json exists) ---------------------------
+  lint:
+    name: Lint + format (P5)
+    needs: detect
+    if: needs.detect.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint --max-warnings=0
+      - run: pnpm format:check
+
+  typecheck:
+    name: Type check (P6)
+    needs: detect
+    if: needs.detect.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  unit:
+    name: Unit + integration tests, coverage ≥ 80% (P7)
+    needs: detect
+    if: needs.detect.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:coverage
+      # Enforce the P7 bar here, independent of whatever thresholds the test config sets.
+      # Requires the coverage "json-summary" reporter. Global line coverage — stricter on average
+      # than "changed code", never looser per file below the bar overall.
+      - name: Assert line coverage ≥ 80%
+        run: |
+          node -e 'const f="coverage/coverage-summary.json";const fs=require("fs");if(!fs.existsSync(f)){console.error(f+" missing: enable the json-summary coverage reporter");process.exit(1)}const pct=JSON.parse(fs.readFileSync(f,"utf8")).total.lines.pct;console.log("line coverage: "+pct+"%");if(!(typeof pct==="number"&&pct>=80))process.exit(1)'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  db:
+    name: Database — migrations + RLS policy tests (P4, P16)
+    needs: detect
+    if: needs.detect.outputs.has_db == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require RLS tests (no vacuous pass)
+        run: |
+          ls supabase/tests/*.sql >/dev/null 2>&1 || { echo "supabase/tests/*.sql required - every table needs RLS policy tests (P16)"; exit 1; }
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase db reset
+      - run: supabase test db
+
+  e2e:
+    name: End-to-end (P8)
+    needs: [detect, unit]
+    if: needs.detect.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  audit:
+    name: Dependency audit (P19)
+    needs: detect
+    if: needs.detect.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high
+
+  build:
+    name: Production build
+    needs: [detect, lint, typecheck]
+    if: needs.detect.outputs.has_app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
