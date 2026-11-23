@@ -1,0 +1,256 @@
+{
+  "skills": {
+    "analyze": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\analyze"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\analyze"
+    },
+    "asdd": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\asdd"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\asdd"
+    },
+    "automation-strategy": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\automation-strategy"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\automation-strategy"
+    },
+    "clarify": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\clarify"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\clarify"
+    },
+    "connect-tool": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\connect-tool"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\connect-tool"
+    },
+    "constitution": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\constitution"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\constitution"
+    },
+    "debug": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\debug"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\debug"
+    },
+    "decision-challenge": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\decision-challenge"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\decision-challenge"
+    },
+    "deprecation": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\deprecation"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\deprecation"
+    },
+    "design": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\design"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\design"
+    },
+    "fable-operator": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\fable-operator"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\fable-operator"
+    },
+    "ftd": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\ftd"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\ftd"
+    },
+    "harness": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\harness"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\harness"
+    },
+    "idea-refinement": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\idea-refinement"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\idea-refinement"
+    },
+    "implement": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\implement"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\implement"
+    },
+    "init": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\init"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\init"
+    },
+    "orient": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\orient"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\orient"
+    },
+    "parallel": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\parallel"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\parallel"
+    },
+    "plan": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\plan"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\plan"
+    },
+    "review": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\review"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\review"
+    },
+    "sdd-init": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\sdd-init"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\sdd-init"
+    },
+    "security-audit": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\security-audit"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\security-audit"
+    },
+    "ship": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\ship"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\ship"
+    },
+    "simplify-code": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\simplify-code"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\simplify-code"
+    },
+    "source-grounded-development": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\source-grounded-development"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\source-grounded-development"
+    },
+    "specify": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\specify"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\specify"
+    },
+    "suggest": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\suggest"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\suggest"
+    },
+    "tasks": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\tasks"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\tasks"
+    },
+    "tidy": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\tidy"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\tidy"
+    },
+    "unslop": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\unslop"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\unslop"
+    },
+    "ux": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\ux"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\ux"
+    },
+    "verify": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\verify"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\verify"
+    },
+    "worktrees": {
+      "files": [
+        "G:\\proyectosClaudeCode\\CRM\\.claude\\skills\\worktrees"
+      ],
+      "base": "G:\\proyectosClaudeCode\\CRM\\.rsc\\skills\\worktrees"
+    }
+  },
+  "agents": [
+    "developer",
+    "finding-verifier",
+    "refuter-correctness",
+    "refuter-security",
+    "refuter-tests"
+  ],
+  "agentCollisions": [],
+  "agentsKept": [],
+  "explicitAgents": [],
+  "memory": {
+    "mode": "full",
+    "reason": "wired",
+    "paths": [
+      "G:\\proyectosClaudeCode\\CRM\\.rsc\\session-memory-core.mjs",
+      "G:\\proyectosClaudeCode\\CRM\\.rsc\\session-memory-adapter.mjs",
+      "G:\\proyectosClaudeCode\\CRM\\.rsc\\session-memory.mjs",
+      "G:\\proyectosClaudeCode\\CRM\\.claude\\settings.local.json"
+    ]
+  },
+  "update": {
+    "mode": "hook"
+  },
+  "knowledge": {
+    "mode": "wired",
+    "reason": null,
+    "paths": [
+      "G:\\proyectosClaudeCode\\CRM\\.rsc\\knowledge-sync.mjs",
+      "G:\\proyectosClaudeCode\\CRM\\.rsc\\trunk-policy.mjs",
+      "G:\\proyectosClaudeCode\\CRM\\.claude\\settings.local.json"
+    ]
+  },
+  "gitPermissions": {
+    "mode": "wired",
+    "path": "G:\\proyectosClaudeCode\\CRM\\.claude\\settings.json"
+  },
+  "policy": {
+    "baseAgents": true,
+    "alwaysOn": true,
+    "codeHooks": true,
+    "dangerGuard": true,
+    "laneGate": true,
+    "gitmojiGuard": true,
+    "memory": true,
+    "context7": false
+  },
+  "commands": [
+    "checkpoint",
+    "learn",
+    "resume-session",
+    "save-session"
+  ],
+  "commandCollisions": [],
+  "version": "4.1.8"
+}
