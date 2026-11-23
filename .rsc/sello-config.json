@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "trunk": "main",
+  "risk": {
+    "raise": [
+      { "class": "lead-intake", "tier": 2, "pattern": "(^|/)src/app/api/leads/" },
+      { "class": "middleware", "tier": 2, "pattern": "(^|/)(src/)?(middleware|proxy)\\.[cm]?[jt]s$" },
+      { "class": "deploy", "tier": 2, "pattern": "(^|/)(vercel\\.json|next\\.config\\.[cm]?[jt]s)$" },
+      { "class": "database", "tier": 2, "pattern": "(^|/)supabase/(migrations/|tests/|config\\.toml$|seed\\.sql$)" },
+      { "class": "service-role", "tier": 2, "pattern": "(^|/)src/(lib|utils)/supabase(/|\\.[cm]?[jt]s$)" }
+    ]
+  }
+}

@@ -46,7 +46,9 @@ history.
 ## Non-goals / out of scope
 - Contacts and companies as separate records, notes, tags — spec 2 (`contacts-companies`).
 - Pipeline board and deals — spec 3. Tasks, reminders, Google Calendar — spec 4.
-- Any email the CRM sends: auto-reply to the enquirer, "new lead" alert to the team — spec 5.
+- Auto-replies to the enquirer, email sequences, and any email other than the new-lead alert — spec 5.
+  (The **new-lead alert to the team is IN scope**, moved earlier on 2026-11-23 so the site's
+  "contact in under 2 hours" promise can be kept.)
 - Charts or metrics — spec 6.
 - Importing past enquiries, CSV import/export, bulk actions.
 - Social login, two-factor login, self-service sign-up.
@@ -112,6 +114,11 @@ history.
   screen only once the lead is actually recorded. Signed-in team members see it at the top of the
   list, marked New and Unassigned.
 - **Consent:** without the box ticked the form cannot be sent and the CRM refuses the submission.
+- **New-lead alert:** as soon as a new lead is recorded, every active team member receives an email
+  alert with the enquirer's name, company, service of interest, the time, and a link to the lead in
+  the CRM (the challenge text and contact details stay inside the CRM, behind sign-in). A repeat
+  enquiry alerts the lead's owner, or everyone if it is unassigned. If the alert cannot be sent, the
+  lead is still recorded and the visitor still sees success; the failure is retried and visible to admins.
 - **Statuses:** New → Contacted → Qualified, or Disqualified. Any status can move to any other.
 - **Repeat enquiry:** the same email submitting again while an open lead exists adds the new
   message to that lead (keeping both, timestamped) instead of creating a duplicate.
@@ -151,17 +158,25 @@ history.
 18. Given a submission, When the system logs anything about it, Then no name, email, phone or message text appears in logs.
 19. Given the list, search and filters, When operated by keyboard only, Then every action is reachable with visible focus (P20).
 20. Given the list, When a member searches by name or email or filters by status or owner, Then only matching leads are shown.
+21. Given a new lead is recorded, When 2 minutes have passed, Then every active member has received an alert containing name, company, service and a working link to the lead — and no email address, phone or challenge text.
+22. Given the alert service is failing, When a visitor submits, Then the lead is still recorded, the visitor sees success, and an admin can see that the alert is pending.
+23. Given a repeat enquiry on an owned lead, When it arrives, Then only the owner is alerted.
 
 ## Points to clarify
-- ~~suposición tomada — form fields name/email/message~~ **Resolved 2026-11-23** from the live site's code: name*, company*, email*, phone, companySize, service, challenge* (+ consent, language).
-- ~~pregunta abierta — consent checkbox?~~ **Resolved 2026-11-23 (owner): yes**, required; Ley 787 (Nicaragua).
-- **suposición tomada** — the "¡Gracias!" text promising contact "en menos de 2 horas" stays as is. *Base:* owner asked to keep the site unchanged beyond the form wiring. *Riesgo:* without a new-lead alert (spec 5) the 2-hour promise may be hard to keep — the owner should confirm it.
+- **suposición tomada** — alerts go to every active member (admins and sales) by email. *Base:* fastest way to meet the 2-hour promise with a small team. *Riesgo:* with a larger team this becomes noise; per-member preferences would be a later spec.
+- **suposición tomada** — website changes land on the website repo's `Desarrollo` branch via PR. *Base:* that branch exists next to `main`. *Riesgo:* if `Desarrollo` is stale or unused, target `main` instead — owner to confirm.
 - **suposición tomada** — lead statuses are New, Contacted, Qualified, Disqualified, freely movable. *Base:* minimal useful set before the pipeline spec. *Riesgo:* spec 3 (pipeline) may want qualified leads to become deals; the set may need to align then.
 - **suposición tomada** — a repeat enquiry merges into the open lead with the same email; a lead counts as "open" unless Disqualified. *Base:* avoids duplicates for the team. *Riesgo:* if the owner wants every enquiry separate, criterion 6 flips.
 - **suposición tomada** — rate limit: at most 5 submissions per source per 10 minutes; message limit 5,000 characters. *Base:* generous for humans, tight for bots. *Riesgo:* low; numbers are tunable.
 - **suposición tomada** — new leads arrive unassigned and are assigned by an admin or claimed by sales (no automatic round-robin). *Base:* the "see all, edit assigned" decision. *Riesgo:* with a large team, admins may want auto-assignment — a later spec.
 - **suposición tomada** — the first admin is the owner, created once during setup; everyone else is invited. *Base:* no public sign-up. *Riesgo:* none known.
 - **decisión diferida** — the Blog page's newsletter email box also sends nothing; out of this spec (a later "newsletter" item).
-- **decisión diferida** — notifying the team of new leads and auto-replying to enquirers → spec 5 (email-automation).
+- **decisión diferida** — auto-replying to the enquirer → spec 5 (email-automation).
 - **decisión diferida** — a screen sketch of the lead list approved by the owner → review-after item (autopilot).
 - **área no formulable** — how leads will relate to contacts and companies in spec 2 (convert a lead into a contact? keep both?). Something is coming; not sharp yet.
+
+## Revisions
+- 2026-11-23 — Form fields: the assumed name/email/message replaced by the real form read from the site's code (name*, company*, email*, phone, companySize, service, challenge*) plus consent and language.
+- 2026-11-23 — Consent checkbox: owner answered **yes**, required (Ley 787, Nicaragua). Criterion 2b added.
+- 2026-11-23 — Finding: the site's form is a stub (fake success). Criterion 2c added; cost section rewritten.
+- 2026-11-23 — "Under 2 hours" promise: owner chose to move the new-lead alert into this spec. Criteria 21–23 added.
