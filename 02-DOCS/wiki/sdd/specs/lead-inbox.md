@@ -6,7 +6,8 @@ tags: [sdd, spec]
 timestamp: 2026-11-22T18:00:00Z
 topic: sdd
 slug: lead-inbox
-status: draft (approved in autopilot, not item by item)
+branch: feat/lead-inbox
+status: clarified (approved in autopilot, not item by item)
 ---
 
 # Spec — Lead inbox (website leads + team access with roles)
@@ -46,13 +47,20 @@ history.
 ## Non-goals / out of scope
 - Contacts and companies as separate records, notes, tags — spec 2 (`contacts-companies`).
 - Pipeline board and deals — spec 3. Tasks, reminders, Google Calendar — spec 4.
-- Any email the CRM sends: auto-reply to the enquirer, "new lead" alert to the team — spec 5.
+- Auto-replies to the enquirer, email sequences, and any email other than the new-lead alert — spec 5.
+  (The **new-lead alert to the team is IN scope**, moved earlier on 2026-11-23 so the site's
+  "contact in under 2 hours" promise can be kept.)
 - Charts or metrics — spec 6.
 - Importing past enquiries, CSV import/export, bulk actions.
 - Social login, two-factor login, self-service sign-up.
 - Multi-tenant / reselling to other companies (one organisation only for now).
 - Things an agent could add "just in case": lead scoring, AI summaries, chat widgets, a public
   lead-status page, file attachments, per-field audit history. None are asked for.
+- Editing what the enquirer sent (name, company, message…): it stays exactly as submitted; team
+  notes arrive with spec 2.
+- Emails to a member when a lead is assigned to them (only the new-lead alert is in scope).
+- A full privacy-policy page on the website and a data-retention schedule (consent wording on the
+  form states the purpose; the page and retention rules are a later item).
 
 ## Users & context
 - **Enquirer** — a visitor on the website (Spanish or English; businesses in Nicaragua) who fills
@@ -112,6 +120,11 @@ history.
   screen only once the lead is actually recorded. Signed-in team members see it at the top of the
   list, marked New and Unassigned.
 - **Consent:** without the box ticked the form cannot be sent and the CRM refuses the submission.
+- **New-lead alert:** as soon as a new lead is recorded, every active team member receives an email
+  alert with the enquirer's name, company, service of interest, the time, and a link to the lead in
+  the CRM (the challenge text and contact details stay inside the CRM, behind sign-in). A repeat
+  enquiry alerts the lead's owner, or everyone if it is unassigned. If the alert cannot be sent, the
+  lead is still recorded and the visitor still sees success; the failure is retried and visible to admins.
 - **Statuses:** New → Contacted → Qualified, or Disqualified. Any status can move to any other.
 - **Repeat enquiry:** the same email submitting again while an open lead exists adds the new
   message to that lead (keeping both, timestamped) instead of creating a duplicate.
@@ -151,17 +164,56 @@ history.
 18. Given a submission, When the system logs anything about it, Then no name, email, phone or message text appears in logs.
 19. Given the list, search and filters, When operated by keyboard only, Then every action is reachable with visible focus (P20).
 20. Given the list, When a member searches by name or email or filters by status or owner, Then only matching leads are shown.
+21. Given a new lead is recorded, When 2 minutes have passed, Then every active member has received an alert containing name, company, service and a working link to the lead — and no email address, phone or challenge text.
+22. Given the alert service is failing, When a visitor submits, Then the lead is still recorded, the visitor sees success, and an admin can see that the alert is pending.
+23. Given a repeat enquiry on an owned lead, When it arrives, Then only the owner is alerted.
+24. Given the only Disqualified lead for an email, When the same email submits again, Then a new lead is created (a disqualified lead is closed).
+25. Given an open lead for `Ana@Example.com `, When `ana@example.com` submits, Then it counts as the same email (case and surrounding spaces ignored).
+26. Given two sales users claim the same unassigned lead at the same moment, When both requests arrive, Then exactly one becomes owner and the other is told the lead was already taken.
+27. Given there is exactly one active admin, When anyone tries to demote or deactivate that admin, Then it is refused — the CRM can never be left without an admin.
+28. Given an invitation older than 24 hours, When the invited person uses its link, Then it is refused and an admin can send a new invitation.
+29. Given an alert that keeps failing, When 24 hours of retries have passed, Then it is marked failed and stays visible to admins; the lead is untouched.
+30. Given the consent box, When the form is shown, Then its label states in the site's language that the data will be used to answer this enquiry, and the lead records which wording version was accepted.
 
 ## Points to clarify
-- ~~suposición tomada — form fields name/email/message~~ **Resolved 2026-11-23** from the live site's code: name*, company*, email*, phone, companySize, service, challenge* (+ consent, language).
-- ~~pregunta abierta — consent checkbox?~~ **Resolved 2026-11-23 (owner): yes**, required; Ley 787 (Nicaragua).
-- **suposición tomada** — the "¡Gracias!" text promising contact "en menos de 2 horas" stays as is. *Base:* owner asked to keep the site unchanged beyond the form wiring. *Riesgo:* without a new-lead alert (spec 5) the 2-hour promise may be hard to keep — the owner should confirm it.
+- **suposición tomada** — alerts go to every active member (admins and sales) by email. *Base:* fastest way to meet the 2-hour promise with a small team. *Riesgo:* with a larger team this becomes noise; per-member preferences would be a later spec.
+- **suposición tomada — validated (held)** — website changes land on the website repo's `Desarrollo` branch via PR. *Base:* owner confirmed 2026-11-23 ("take the Desarrollo").
+- **suposición tomada** — a repeat enquiry keeps the lead's original name/company/phone; each enquiry's own submitted fields are stored with its message. *Base:* "what the enquirer sent stays as sent" (non-goals). *Riesgo:* the list may show an outdated phone; the team sees the newer one in the message history.
+- **suposición tomada** — search matches part of the name, email or company, ignoring case; the list shows 25 leads per page. *Base:* small team, common default. *Riesgo:* low; tunable.
+- **suposición tomada** — sales can claim an unassigned lead but cannot release or hand it on; only an admin reassigns. *Base:* "edit assigned only" decision; fewer powers = fewer mistakes. *Riesgo:* admins become a bottleneck for hand-offs.
+- **suposición tomada** — the last active admin cannot be demoted or deactivated (AC27). *Base:* otherwise nobody could ever manage the team again. *Riesgo:* none known.
+- **suposición tomada** — invitations expire after 24 h and can be re-sent (AC28). *Base:* common safe default for sign-in links. *Riesgo:* low.
+- **suposición tomada** — failed alerts retry for 24 h, then are marked failed for admins (AC29). *Base:* the 2-hour promise is lost long before; endless retries help nobody. *Riesgo:* low.
+- **suposición tomada** — the consent label states the purpose and the accepted wording version is stored with the lead (AC30). *Base:* Ley 787 needs informed, provable consent; no privacy page exists on the site. *Riesgo:* the owner may want legal review of the wording before launch.
+- **suposición tomada** — the 2.5 s (AC16) and 500 ms (AC17) budgets are measured on a preview deployment holding 1,000 test leads: page load via a lab run on a mobile profile, intake via 100 sequential valid submissions. *Base:* makes P21–22 checkable. *Riesgo:* preview hardware differs from production.
 - **suposición tomada** — lead statuses are New, Contacted, Qualified, Disqualified, freely movable. *Base:* minimal useful set before the pipeline spec. *Riesgo:* spec 3 (pipeline) may want qualified leads to become deals; the set may need to align then.
 - **suposición tomada** — a repeat enquiry merges into the open lead with the same email; a lead counts as "open" unless Disqualified. *Base:* avoids duplicates for the team. *Riesgo:* if the owner wants every enquiry separate, criterion 6 flips.
 - **suposición tomada** — rate limit: at most 5 submissions per source per 10 minutes; message limit 5,000 characters. *Base:* generous for humans, tight for bots. *Riesgo:* low; numbers are tunable.
 - **suposición tomada** — new leads arrive unassigned and are assigned by an admin or claimed by sales (no automatic round-robin). *Base:* the "see all, edit assigned" decision. *Riesgo:* with a large team, admins may want auto-assignment — a later spec.
 - **suposición tomada** — the first admin is the owner, created once during setup; everyone else is invited. *Base:* no public sign-up. *Riesgo:* none known.
 - **decisión diferida** — the Blog page's newsletter email box also sends nothing; out of this spec (a later "newsletter" item).
-- **decisión diferida** — notifying the team of new leads and auto-replying to enquirers → spec 5 (email-automation).
+- **decisión diferida** — auto-replying to the enquirer → spec 5 (email-automation).
 - **decisión diferida** — a screen sketch of the lead list approved by the owner → review-after item (autopilot).
 - **área no formulable** — how leads will relate to contacts and companies in spec 2 (convert a lead into a contact? keep both?). Something is coming; not sharp yet.
+
+## Revisions
+- 2026-11-23 — Form fields: the assumed name/email/message replaced by the real form read from the site's code (name*, company*, email*, phone, companySize, service, challenge*) plus consent and language.
+- 2026-11-23 — Consent checkbox: owner answered **yes**, required (Ley 787, Nicaragua). Criterion 2b added.
+- 2026-11-23 — Finding: the site's form is a stub (fake success). Criterion 2c added; cost section rewritten.
+- 2026-11-23 — "Under 2 hours" promise: owner chose to move the new-lead alert into this spec. Criteria 21–23 added.
+- 2026-11-23 — Clarify pass (autopilot): criteria 24–30 added; three items moved to non-goals; eight assumptions recorded; `Desarrollo` validated.
+
+## Clarifications
+Autopilot pass, 2026-11-23. Each line: gap → decision → why. Every decision is a `review-after`
+entry in [progress/lead-inbox.md](../progress/lead-inbox.md); none is blocking.
+- Repeat enquiry on a Disqualified lead → new lead (AC24) → "open unless Disqualified" already said so; now testable.
+- Same email typed differently → case and spaces ignored (AC25) → otherwise duplicates slip past the merge rule.
+- Two sales claim at once → first wins, second told (AC26) → "one owner" must hold under concurrency.
+- Last admin removed → refused (AC27) → without it the team could lock itself out.
+- Invitation link lifetime → 24 h, re-sendable (AC28) → unstated; a sign-in link must not live forever.
+- Alert that never succeeds → 24 h of retries, then failed and shown (AC29) → "retried" had no end.
+- What consent means under Ley 787 → purpose stated on the label, wording version stored (AC30) → time alone does not prove what was agreed.
+- Can an admin correct what the enquirer typed? → no, out of scope → keeps the record as given; notes come in spec 2.
+- Do members get "assigned to you" emails? → no, out of scope → only the new-lead alert was asked for.
+- How are P21–22 budgets measured? → preview deployment, 1,000 test leads (assumption) → "fast" must be checkable.
+- Points handed over by specify: alerts to all (validated, held) · `Desarrollo` (validated by owner) · statuses, merge rule, rate limit, manual assignment, first admin (validated, held) · newsletter, auto-reply, screen sketch (left deferred) · leads vs contacts (still not formulable; noted).
