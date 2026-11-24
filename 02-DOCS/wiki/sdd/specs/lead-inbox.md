@@ -55,6 +55,11 @@ history.
 - Importing past enquiries, CSV import/export, bulk actions.
 - Social login, two-factor login, self-service sign-up.
 - Multi-tenant / reselling to other companies (one organisation only for now).
+- WhatsApp and Telegram intake, client profiles built from conversations, and the qualification
+  question script — separate specs after this one (`chat-channels`, `client-profile`,
+  `qualification-questions`; owner decision 2026-11-24). This spec only records each enquiry's channel
+  (AC31) so those channels plug in without reworking leads. Those specs inherit this spec's privacy
+  floor: consent recorded per channel (AC2b, AC30), no personal data in logs (AC18), no direct writes.
 - Things an agent could add "just in case": lead scoring, AI summaries, chat widgets, a public
   lead-status page, file attachments, per-field audit history. None are asked for.
 - Editing what the enquirer sent (name, company, message…): it stays exactly as submitted; team
@@ -175,6 +180,7 @@ history.
 28. Given an invitation older than 24 hours, When the invited person uses its link, Then it is refused and an admin can send a new invitation.
 29. Given an alert that keeps failing, When 24 hours of retries have passed, Then it is marked failed and stays visible to admins; the lead is untouched.
 30. Given the consent box, When the form is shown, Then its label states in the site's language that the data will be used to answer this enquiry, and the lead records which wording version was accepted.
+31. Given a website submission, When the enquiry is recorded, Then each of its enquiries (first and merged repeats) is marked as coming from the website channel — set by the CRM, never taken from what the sender submits — and an enquiry can never be stored without a channel or with one outside the known list (website for now).
 
 ## Points to clarify
 - **suposición tomada** — *(validated by owner 2026-11-23)* alerts go to every active member (admins and sales) by email. *Base:* fastest way to meet the 2-hour promise with a small team. *Riesgo:* with a larger team this becomes noise; per-member preferences would be a later spec.
@@ -203,6 +209,7 @@ history.
 - 2026-11-23 — Finding: the site's form is a stub (fake success). Criterion 2c added; cost section rewritten.
 - 2026-11-23 — "Under 2 hours" promise: owner chose to move the new-lead alert into this spec. Criteria 21–23 added.
 - 2026-11-23 — Clarify pass (autopilot): criteria 24–30 added; three items moved to non-goals; eight assumptions recorded; `Desarrollo` validated.
+- 2026-11-24 — Owner added WhatsApp + Telegram intake, keyword-built client profiles and a question script to the product. Decision: separate specs after lead-inbox (WhatsApp first; a bot asks the questions, then hands over to a person). Here only criterion 31 (enquiry channel) is added.
 
 ## Clarifications
 Autopilot pass, 2026-11-23. Each line: gap → decision → why. Every decision is a `review-after`

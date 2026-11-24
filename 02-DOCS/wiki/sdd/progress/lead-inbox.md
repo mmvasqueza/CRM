@@ -14,7 +14,7 @@
 | analyze | GATE PASS — 4 medium found and resolved, 1 low resolved, 3 low accepted ([report](../analysis/lead-inbox.md)) | 2026-11-23 |
 
 ## Decision queue
-Decisions taken alone in autopilot, then reviewed by the owner on 2026-11-23 (all 14 answered).
+Rows 1–14: decisions taken alone in autopilot, then reviewed by the owner on 2026-11-23 (all answered). Rows 15–17: raised later and answered directly by the owner.
 
 | # | Kind | Decision | Owner answer (2026-11-23) | Still to do |
 |---|------|----------|---------------------------|-------------|
@@ -34,6 +34,7 @@ Decisions taken alone in autopilot, then reviewed by the owner on 2026-11-23 (al
 | 14 | launch-blocker | Cloudflare Turnstile widget | ✅ Owner creates it with a click-by-click guide | at the website step |
 | 15 | review-after | Security headers (CSP, frame-ancestors, Referrer-Policy, nosniff) — no task in the plan sets them (T001 review, ledger L28) | ✅ Add a task: T030 in PR C (2026-11-23) | build T030 |
 | 16 | review-after | Prettier skips app code in nested `dist/`, `out/`, `coverage/` folders because `.gitignore` entries are unanchored (T001 review, ledger L31) | ✅ Fix in T002: anchor `/dist/`, `/out/`, `/coverage/` (2026-11-23) | in the T002 commit |
+| 17 | scope | Owner added WhatsApp + Telegram intake, keyword-built client profiles and a qualification question script | ✅ Separate specs after lead-inbox; WhatsApp first; a bot asks the questions, then hands to a person; specs written on `feat/lead-inbox-foundation`. lead-inbox gains AC31 (enquiry channel) in T006–T007 (2026-11-24) | owner sends the question list + keywords; write `chat-channels`, `client-profile`, `qualification-questions` specs |
 
 ## Evidence
 _Filled per task during implement: test runs, coverage, E2E, review rounds._
