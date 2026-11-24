@@ -32,8 +32,12 @@ Decisions taken alone in autopilot, then reviewed by the owner on 2026-11-23 (al
 | 12 | launch-blocker | Supabase plan (free pauses after ~7 idle days) | ✅ Free + daily keep-alive ping | owner creates project (guided); ping added to the plan |
 | 13 | launch-blocker | CRM production URL | ✅ Free `*.vercel.app` address | set when the Vercel project is created |
 | 14 | launch-blocker | Cloudflare Turnstile widget | ✅ Owner creates it with a click-by-click guide | at the website step |
-| 15 | review-after | Security headers (CSP, frame-ancestors, Referrer-Policy, nosniff) — no task in the plan sets them (T001 review, ledger L28) | ⏳ pending | add a task before launch, or accept the gap |
-| 16 | review-after | Prettier skips app code in nested `dist/`, `out/`, `coverage/` folders because `.gitignore` entries are unanchored (T001 review, ledger L31) | ⏳ pending | anchor them (`/dist/` …) in a later commit, or accept |
+| 15 | review-after | Security headers (CSP, frame-ancestors, Referrer-Policy, nosniff) — no task in the plan sets them (T001 review, ledger L28) | ✅ Add a task: T030 in PR C (2026-11-23) | build T030 |
+| 16 | review-after | Prettier skips app code in nested `dist/`, `out/`, `coverage/` folders because `.gitignore` entries are unanchored (T001 review, ledger L31) | ✅ Fix in T002: anchor `/dist/`, `/out/`, `/coverage/` (2026-11-23) | in the T002 commit |
 
 ## Evidence
 _Filled per task during implement: test runs, coverage, E2E, review rounds._
+
+| Task | Evidence | Review | Date |
+| --- | --- | --- | --- |
+| T001 ✅ | RED: `lint`/`typecheck` fail with no app. GREEN on 49acaea: `lint --max-warnings=0`, `format:check`, `typecheck`, `build` exit 0. Gates proven to fail on mutants (`any`, unused var, unformatted) in `src/`, `tests/` and a root `.mts`. | Tier 2 · 2 rounds · panel correctness+security+tests on 49acaea · 1 should-fix confirmed by finding-verifier and fixed · 0 blockers · L28, L31 parked → queue #15, #16 · owner approved push | 2026-11-23 |
