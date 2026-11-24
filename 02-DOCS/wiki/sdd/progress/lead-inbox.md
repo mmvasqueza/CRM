@@ -8,6 +8,7 @@
 | specify | spec written, gate PASS | 2026-11-22 |
 | clarify | 7 criteria added (24–30), 8 assumptions recorded, 0 blocking | 2026-11-23 |
 | plan | [plan](../plans/lead-inbox.md) written; 11 build steps; 4 owner actions before launch | 2026-11-23 |
+| tasks | 29 tasks (T001–T029) appended to the plan; all 30 criteria covered; 11 tier-2 tasks; delivery in 4 PRs | 2026-11-23 |
 
 ## Decision queue
 Decisions taken alone in autopilot, then reviewed by the owner on 2026-11-23 (all 14 answered).
