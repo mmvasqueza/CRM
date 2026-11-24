@@ -32,7 +32,7 @@ Every task includes these, verbatim. The per-task reviewer reads them first.
 - **Roles:** `admin`, `sales`. Roles checked in the database, never trusted from the client.
 - **Budgets:** CRM page LCP ≤ 2.5 s; intake p95 ≤ 500 ms; alert sending never inside the intake request's critical path.
 - **Times:** invitation link 24 h; alert retries for 24 h, then `failed`; alert first attempt within 2 minutes.
-- **Code layout:** `src/features/leads/`, `src/features/auth/`, `src/features/members/`, `src/features/alerts/`; shared in `src/lib/`. Files ≤ 800 lines.
+- **Code layout (P10 domains only):** `src/features/leads/`, `src/features/auth/` (member management in `src/features/auth/members/`), `src/features/email/` (alerts in `src/features/email/alerts/`); shared in `src/lib/`. Files ≤ 800 lines.
 - **Commits:** gitmoji + Conventional Commits, authored by the human; no `Co-Authored-By`, no generated-by footer.
 - **Accessibility:** WCAG 2.2 AA, keyboard-only operable, visible focus, labelled fields, usable at 360 px.
 
@@ -117,7 +117,9 @@ db.delete_lead(lead_id) -> ok | FORBIDDEN                           admin only; 
 db.set_member_role(member_id, role) / db.set_member_active(member_id, bool) -> ok | FORBIDDEN | LAST_ADMIN
   - LAST_ADMIN when the change would leave zero active admins (also enforced by trigger)
 
-members.invite(email, role) -> ok | ALREADY_MEMBER | INVALID          admin server action
+members.invite(email, role) -> ok | ALREADY_MEMBER | INVALID | FORBIDDEN   admin server action
+  - an email already `invited` (not yet signed in) is re-invited: a new 24 h link replaces the old one (AC28)
+  - ALREADY_MEMBER only when the email belongs to a member who has signed in
   - Supabase Auth admin invite (service role); members row status invited; link expires in 24 h
   - deactivate also bans the auth user, so existing sessions stop at next refresh
 
@@ -141,7 +143,7 @@ leads.list({ page, q?, status?, owner? }) -> { rows ≤ 25, total, page }   user
 - **leads** — id, email_normalized, name, company, phone, company_size, service, language, status, owner_id → members, consent_at, consent_version, created_at, last_enquiry_at. Contact fields are the first enquiry's, kept as sent.
 - **enquiries** — id, lead_id → leads (cascade), name, company, phone, company_size, service, challenge, language, consent_at, consent_version, submitted_at. One per submission; the lead detail shows them all.
 - **alert_jobs** — id, lead_id → leads (cascade), recipient_id → members, kind (`new_lead|repeat_enquiry`), status (`pending|sent|failed`), attempts, next_attempt_at, first_attempt_at, last_error_code. Admin-readable only.
-- **intake_rate** — key_hash, window_start, count. Service role only; old rows purged by pg_cron daily.
+- **intake_rate** — key_hash, window_start, count. Service role only: RLS enabled with an explicit `using (false)` policy for `anon` and `authenticated` (P16 letter); old rows purged by pg_cron daily.
 
 RLS summary: `members`, `leads`, `enquiries` readable by active members; `alert_jobs` readable by
 active admins; `intake_rate` no access for `anon`/`authenticated`. No INSERT/UPDATE/DELETE grants to
@@ -245,28 +247,28 @@ Integration and pgTAP checks run against local Supabase (`supabase start`). "Red
 | T004 |  | Add env schema (Zod) and Supabase clients: browser, server (user session), admin (service role, `server-only`) | `src/lib/env.test.ts` red→green: missing/invalid var throws with the var name; admin module imports `server-only` | T001, T002 | AC1 (enabler; P9, P15) | 2 |
 | T005 |  | Migrate `members` + role/active helper functions + RLS + last-admin trigger | `supabase db reset` applies; `supabase/tests/members.test.sql` red→green: active member reads, inactive denied, anon denied, demoting/deactivating last admin raises `LAST_ADMIN` | T003 | AC12, AC15, AC27 | 2 |
 | T006 |  | Migrate `leads` + `enquiries` + partial unique index on open `email_normalized` + RLS (read for active members, no direct writes) | `supabase/tests/leads_rls.test.sql` red→green: sales/admin SELECT all; direct INSERT/UPDATE/DELETE by `authenticated` and `anon` denied, row unchanged | T005 | AC11, AC12 | 2 |
-| T007 |  | Migrate `submit_enquiry`, `rate_limit_hit`, `intake_rate`, `alert_jobs` | `supabase/tests/intake.test.sql` red→green: new lead + enquiry + jobs for all active; merge on same / odd-cased email; disqualified → new lead; owner-only recipients on repeat; 6th hit in window refused | T006 | AC4, AC6, AC21, AC23, AC24, AC25 | 2 |
+| T007 |  | Migrate `submit_enquiry`, `rate_limit_hit`, `intake_rate`, `alert_jobs` | `supabase/tests/intake.test.sql` red→green: new lead + enquiry + jobs for all active; merge on same / odd-cased email; disqualified → new lead; owner-only recipients on repeat; `consent_at` + `consent_version` stored on lead and enquiry; 6th hit in window refused | T006 | AC4, AC6, AC21, AC23, AC24, AC25, AC30 | 2 |
 | T008 | [P] | Migrate `claim_lead`, `set_lead_status`, `assign_lead`, `delete_lead`, `set_member_role`, `set_member_active` | `supabase/tests/lead_actions.test.sql` red→green: claim race → one `ALREADY_TAKEN`; sales on others' lead → `FORBIDDEN`, unchanged; admin assign/status saved; delete cascades; last admin → `LAST_ADMIN` | T006 | AC10, AC11, AC13, AC14, AC26, AC27 | 2 |
 | T009 | [P] | Implement intake Zod schema + email normalisation | `src/features/leads/intake/schema.test.ts` red→green: required fields, enums, consent must be `true`, challenge ≤ 5,000, returns field names on error, `" Ana@X.com "` → `ana@x.com` | T002 | AC2, AC2b, AC25 | 1 |
 | T010 | [P] | Implement PII-safe logger | `src/lib/log.test.ts` red→green: name/email/phone/company/challenge/ip keys rejected or stripped; only id, request id, outcome, duration emitted | T002 | AC18 | 1 |
 | T011 | [P] | Implement Turnstile verifier + origin check | `src/features/leads/intake/guards.test.ts` red→green: Cloudflare test secrets pass/fail; origin outside `INTAKE_ALLOWED_ORIGINS` rejected | T002 | AC3, AC5 | 1 |
 | T012 |  | Implement `POST /api/leads` (+ OPTIONS preflight) wiring T009–T011 to `submit_enquiry` | `src/app/api/leads/route.test.ts` (integration) red→green: 201 + row (AC1), 400 with fields (AC2/2b), 403 spam (AC3), 429 (AC4), 403 origin + no allow header (AC5), merge (AC6), captured logs contain none of the submitted values (AC18) | T004, T007, T009, T010, T011 | AC1–AC6, AC18 | 2 |
-| T013 | [P] | Implement mail adapter (interface + Resend + capture fake) and alert template | `src/features/alerts/template.test.ts` red→green: body has name, company, service, time, `${APP_URL}/leads/<id>`; lacks email, phone, challenge | T002 | AC21 | 1 |
-| T014 |  | Implement alert dispatcher, `POST /api/alerts/dispatch` (bearer secret), `after()` hook in the intake | `src/features/alerts/dispatch.test.ts` red→green with fake clock + throwing adapter: backoff, `failed` after 24 h, no double send; route test: 401 without secret; intake still 201 + row when adapter throws | T012, T013 | AC21, AC22, AC29 | 1 (expect 2 by content: service role) |
+| T013 | [P] | Implement mail adapter (interface + Resend + capture fake) and alert template | `src/features/email/alerts/template.test.ts` red→green: body has name, company, service, time, `${APP_URL}/leads/<id>`; lacks email, phone, challenge | T002 | AC21 | 1 |
+| T014 |  | Implement alert dispatcher, `POST /api/alerts/dispatch` (bearer secret), `after()` hook in the intake | `src/features/email/alerts/dispatch.test.ts` red→green with fake clock + throwing adapter: backoff, `failed` after 24 h, no double send; route test: 401 without secret; intake still 201 + row when adapter throws | T012, T013 | AC21, AC22, AC29 | 1 (expect 2 by content: service role) |
 | T015 |  | Migrate pg_cron schedules: alert retry every 2 min, daily keep-alive, daily `intake_rate` purge | `supabase/tests/cron.test.sql` red→green: three `cron.job` rows with the expected schedules | T014 | AC22, AC29 (decision #12) | 2 |
 | T016 |  | Implement login (magic link), auth callback, sign-out, deactivated refusal | `src/features/auth/auth.test.ts` (integration, mail catcher) red→green: invited user signs in; uninvited/sign-up refused; deactivated refused with the same generic message | T004, T005 | AC8, AC9, AC15 | 2 |
 | T017 |  | Implement proxy guard for CRM routes | `src/proxy.test.ts` red→green: every `/leads*`, `/members*`, `/alerts*` request without session → redirect `/login`, body has no lead data | T016 | AC7 | 2 |
 | T018 | [P] | Produce the lead list + detail sketch and get owner approval | sketch shared; owner's approval (or changes) recorded in `progress/lead-inbox.md` | — | AC16, AC19, AC20 (reference, decision #9) | 0 |
 | T019 |  | Build lead list: 25/page newest first, search (name/email/company, partial, case-insensitive), status/owner filters, empty state | `src/features/leads/list.test.tsx` + `queries.test.ts` red→green: paging + next link, filters/search return only matches, "no leads yet" | T006, T017, T018 | AC12, AC16, AC20 | 1 |
 | T020 |  | Build lead detail with full enquiry history | `src/features/leads/detail.test.tsx` red→green: every enquiry with its time and fields, consent time + version shown | T019 | AC1, AC6 | 1 |
-| T021 |  | Wire lead actions (claim, status, assign, delete) as server actions + UI messages | `src/features/leads/actions.test.ts` red→green: `FORBIDDEN` → "only the owner or an admin can change this lead"; `ALREADY_TAKEN` → "already taken"; admin delete removes from list | T008, T020 | AC10, AC11, AC13, AC14, AC26 | 1 |
-| T022 |  | Build members admin: invite (24 h), change role, deactivate (+ auth ban), last-admin message | `src/features/members/actions.test.ts` (integration) red→green: invite creates `invited` member; deactivate bans and keeps their leads; `LAST_ADMIN` message shown | T008, T016 | AC8, AC15, AC27, AC28 | 1 (expect 2 by content: service role) |
-| T023 |  | Build alerts admin panel (pending / failed) | `src/features/alerts/panel.test.tsx` red→green: admin sees pending + failed jobs; sales gets no access | T014, T017 | AC22, AC29 | 1 |
+| T021 |  | Wire lead actions (claim, status, assign, delete) as server actions + UI messages | `src/features/leads/actions.test.ts` red→green: `FORBIDDEN` → "Only the owner or an admin can change this lead."; `ALREADY_TAKEN` → "This lead was already taken."; `INACTIVE_MEMBER` → "That member is deactivated."; admin delete removes from list | T008, T020 | AC10, AC11, AC13, AC14, AC26 | 1 |
+| T022 |  | Build members admin: invite (24 h), change role, deactivate (+ auth ban), last-admin message | `src/features/auth/members/actions.test.ts` (integration) red→green: invite creates `invited` member; re-inviting an `invited` email issues a new link (AC28); inviting a signed-in member → `ALREADY_MEMBER`; sales calling any action → `FORBIDDEN`; deactivate bans and keeps their leads; `LAST_ADMIN` message shown | T008, T016 | AC8, AC15, AC27, AC28 | 2 (auth path) |
+| T023 |  | Build alerts admin panel (pending / failed) | `src/features/email/alerts/panel.test.tsx` red→green: admin sees pending + failed jobs; sales gets no access | T014, T017 | AC22, AC29 | 1 |
 | T024 |  | Pass accessibility: keyboard-only + axe | `e2e/a11y.spec.ts`: 0 axe violations on `/login`, `/leads`, `/leads/[id]`, `/members`; every action reachable by Tab with visible focus; usable at 360 px | T019–T023 | AC19 | 1 |
 | T025 |  | E2E lead capture + alert | `e2e/lead-capture.spec.ts`: POST as the website → lead top of list as New/Unassigned; alert in capture mailbox with link, without email/phone/challenge | T012, T014, T019 | AC1, AC21 | 1 |
 | T026 |  | E2E login + role access | `e2e/roles.spec.ts`: signed-out redirect; sales sees all, cannot change others' lead (UI + direct call); admin reassigns and changes status | T021, T022 | AC7, AC8, AC11, AC12, AC13 | 1 |
 | T027 |  | Website form (DigitalSystemPro, branch off `Desarrollo`): submit to CRM, consent checkbox + wording v1 (es/en), honeypot, Turnstile widget, success only on 201, error with retry + WhatsApp | website `src/pages/Contact.test.tsx` (Vitest + Testing Library added) red→green: success only on 201; field errors on 400; no submit without consent; network/500 → error with WhatsApp; consent label per language + version sent | T012 (contract) | AC1, AC2, AC2b, AC2c, AC30 | 1 (other repo) |
-| T028 |  | Seed 1,000 test leads on a preview deploy; measure LCP and intake p95 | `scripts/measure-intake.ts` p95 ≤ 500 ms over 100 submissions; lab LCP ≤ 2.5 s on `/leads` (mobile profile); numbers recorded in progress | T025, T027 | AC16, AC17 | 1 |
+| T028 |  | Seed 1,000 test leads on a preview deploy; measure LCP and intake p95 | `scripts/measure-intake.ts` p95 ≤ 500 ms over 100 submissions; lab LCP ≤ 2.5 s on `/leads` (laptop profile, throttled 4G — P21); numbers recorded in progress | T025, T027 | AC16, AC17 | 1 |
 | T029 |  | Close: all done-checks pass, CI green, coverage ≥ 80 %, closing review | every row above checked; CI run green on the PR; closing review recorded in `sdd/reviews/lead-inbox.md` | all | all ACs | — |
 
 **T007 — Interfaces**
@@ -285,6 +287,26 @@ Integration and pgTAP checks run against local Supabase (`supabase start`). "Red
 - Consumes: `MailAdapter.send({ to, subject, html, text }) -> Promise<void>` (T013); `alert_jobs` (T007).
 - Produces: `dispatchAlerts({ limit, now }) -> { sent, retried, failed }`; `POST /api/alerts/dispatch` with `Authorization: Bearer ${ALERTS_DISPATCH_SECRET}`.
 
+**T016 — Interfaces**
+- Consumes: Supabase Auth (magic link, `signInWithOtp({ email, options: { shouldCreateUser: false } })`); `members(user_id, role, active)` (T005).
+- Produces: `/login` (form), `/auth/callback` (code exchange → session cookie → `/leads`), `signOut()` server action; refusal message for unknown, uninvited or deactivated: "We could not sign you in. Ask an admin for an invitation." (identical in every case).
+
+**T019 — Interfaces**
+- Consumes: user-session Supabase client (T004); `leads` columns (T006): `id, name, email_normalized, company, status, owner_id, created_at`; `members(user_id, email)` for the owner name.
+- Produces: `listLeads({ page ≥ 1, q?: string ≤ 100, status?: LeadStatus, owner?: uuid | "unassigned" }) -> { rows: LeadRow[≤ 25], total: number, page: number }`, newest first.
+
+**T021 — Interfaces**
+- Consumes: T008 functions `claim_lead(uuid)`, `set_lead_status(uuid, text)`, `assign_lead(uuid, uuid|null)`, `delete_lead(uuid)`, errors SQLSTATE `P0001` with message `FORBIDDEN | NOT_FOUND | ALREADY_TAKEN | INACTIVE_MEMBER`.
+- Produces: server actions returning the envelope `{ success, data, error: { code, message } }`; messages: FORBIDDEN → "Only the owner or an admin can change this lead.", ALREADY_TAKEN → "This lead was already taken.", NOT_FOUND → "This lead no longer exists.", INACTIVE_MEMBER → "That member is deactivated."
+
+**T022 — Interfaces**
+- Consumes: admin client (T004) `auth.admin.inviteUserByEmail(email)` and `auth.admin.updateUserById(id, { ban_duration })`; T008 `set_member_role(uuid, text)`, `set_member_active(uuid, boolean)` with `LAST_ADMIN`.
+- Produces: admin-only server actions `inviteMember({ email, role })` (also re-sends to an `invited` email), `changeRole({ memberId, role })`, `setActive({ memberId, active })` returning the envelope. Messages: LAST_ADMIN → "The CRM needs at least one active admin.", ALREADY_MEMBER → "This person is already a member.", INVALID → "Enter a valid email and role.", FORBIDDEN → "Only an admin can manage members."
+
+**T023 — Interfaces**
+- Consumes: `alert_jobs` (T007) readable by active admins only (RLS).
+- Produces: `/alerts` page listing pending and failed jobs: lead name, recipient, attempts, next attempt, last error code — never the error's raw text.
+
 **T027 — Interfaces**
 - Consumes: `POST ${VITE_CRM_INTAKE_URL}` body `{ name, company, email, phone?, companySize?, service?, challenge, language, consent: true, consentVersion: "v1", turnstileToken, website: "" }` → `201` success; `400 { error.fields }`; `403/429/500` → error state.
 
@@ -293,6 +315,6 @@ Integration and pgTAP checks run against local Supabase (`supabase start`). "Red
 | Dimension | Forecast | Why |
 | --- | --- | --- |
 | Estimated changed lines | 4,000–6,000 (≈ 40 % tests) | 29 tasks across scaffold, SQL, API, UI, E2E, website |
-| Files / areas | ~70 files: config, `supabase/migrations` + `tests`, `src/lib`, `src/features/{leads,alerts,auth,members}`, `src/app`, `e2e`, website `Contact.tsx` | |
-| Risk | max tier 2; 11 tier-2 tasks (T001, T003–T008, T012, T015–T017), likely 13 after content scoring (T014, T022) | each needs the 3-refuter panel and the owner's approval |
+| Files / areas | ~70 files: config, `supabase/migrations` + `tests`, `src/lib`, `src/features/{leads,auth,email}`, `src/app`, `e2e`, website `Contact.tsx` | |
+| Risk | max tier 2; 12 tier-2 tasks (T001, T003–T008, T012, T015–T017, T022), likely 13 after content scoring (T014) | each needs the 3-refuter panel and the owner's approval |
 | Suggested delivery | **ask-on-risk, in 4 PRs** — far over the 400-line review budget | A: foundation T001–T008 · B: intake + alerts T009–T015 · C: auth + screens + E2E T016–T026 · D: website T027 (other repo) · then T028–T029. Branch for each PR asked before it starts (main is closed). |
