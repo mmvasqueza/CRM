@@ -2,7 +2,7 @@
 
 | AC | Evidence | Result | When |
 |----|----------|--------|------|
-| AC1 | First CI run on the PR | _pending — repo push after review_ | — |
+| AC1 | First CI run on PR #1 (merged as `27f5e7c`) | Owner reports app checks shown as skipped. Secret scan + spec gate result still to confirm via `gh` | 2026-11-23 (partial) |
 | AC2 | Throw-away PR with a secret-shaped token | _pending — after first green run_ | — |
 | AC3 | `rsc spec gate` on `ci-sello.md` copy with "The cheapest alternative" removed | `FAIL broken.md — missing section(s): cheapest`, exit 1 | 2026-11-23 |
 | AC4 | `git push -u origin main` with this tier-2 change unreviewed | Refused: "sello: this change is risk tier 2 and has no review" | 2026-11-23 |

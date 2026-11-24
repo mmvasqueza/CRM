@@ -1,0 +1,71 @@
+# SDD runtime config — calibrated 2026-11-23 against constitution v1.0.0 (no app code yet;
+# re-calibrate once package.json exists after T001).
+version: 1
+project:
+  root: .
+  stacks: [nextjs, react, postgres, supabase]
+  package_managers: [pnpm]
+  monorepo: false
+  signals: [vercel, github-actions, supabase-cli, docker]
+sdd:
+  artifact_store: 02-DOCS/wiki/sdd
+  execution_mode: automatic      # owner chose autopilot (decision 2026-11-22)
+  registry_path: .rsc/skill-registry.json
+  review_budget:
+    line_budget: 400
+    file_budget: 12
+  delivery_strategy:
+    default: ask-on-risk
+testing:
+  strict_tdd: true
+  runners: [vitest, playwright, pgtap]
+  commands:
+    apply:
+      - pnpm test:coverage
+      - npx -y supabase db reset
+      - npx -y supabase test db
+    verify:
+      - pnpm lint --max-warnings=0
+      - pnpm format:check
+      - pnpm typecheck
+      - pnpm test:coverage
+      - npx -y supabase db reset
+      - npx -y supabase test db
+      - pnpm test:e2e
+      - pnpm audit --audit-level=high
+      - pnpm build
+  local_notes: >-
+    Database commands need the local stack running first: `npx -y supabase start` (Docker).
+    pnpm 12.23.0 installed globally on the owner's machine (2026-11-23).
+    Local Node is 26; CI pins Node 22 (constitution P1).
+phase_rules:
+  proposal: optional-on-ambiguity
+  specify: requires intent or proposal
+  plan: requires spec
+  tasks: requires plan and spec
+  analyze: requires spec plan tasks
+  implement: requires analyze pass, strict_tdd when testing.strict_tdd is true
+  verify: requires spec tasks evidence
+  archive: requires verify record and review/ship outcome
+models:
+  enabled: false              # opt-in master switch; false = honor session model, announce nothing
+  provider: anthropic         # which provider the tiers below resolve to
+  tiers:
+    heavy: claude-opus-4-8
+    balanced: claude-sonnet-4-6
+    light: claude-haiku-4-5-20251001
+  phases:
+    constitution: heavy
+    specify: balanced
+    clarify: balanced
+    plan: heavy
+    tasks: balanced
+    analyze: heavy
+    implement: balanced
+    verify: balanced
+    review: heavy
+    ship: light
+    debug: heavy
+    worktrees: light
+    sdd-init: light
+  overrides: {}               # per-phase tier overrides set by the user
