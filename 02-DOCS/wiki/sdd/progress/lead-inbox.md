@@ -32,6 +32,8 @@ Decisions taken alone in autopilot, then reviewed by the owner on 2026-11-23 (al
 | 12 | launch-blocker | Supabase plan (free pauses after ~7 idle days) | ✅ Free + daily keep-alive ping | owner creates project (guided); ping added to the plan |
 | 13 | launch-blocker | CRM production URL | ✅ Free `*.vercel.app` address | set when the Vercel project is created |
 | 14 | launch-blocker | Cloudflare Turnstile widget | ✅ Owner creates it with a click-by-click guide | at the website step |
+| 15 | review-after | Security headers (CSP, frame-ancestors, Referrer-Policy, nosniff) — no task in the plan sets them (T001 review, ledger L28) | ⏳ pending | add a task before launch, or accept the gap |
+| 16 | review-after | Prettier skips app code in nested `dist/`, `out/`, `coverage/` folders because `.gitignore` entries are unanchored (T001 review, ledger L31) | ⏳ pending | anchor them (`/dist/` …) in a later commit, or accept |
 
 ## Evidence
 _Filled per task during implement: test runs, coverage, E2E, review rounds._
