@@ -10,9 +10,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src next.config.ts eslint.config.mjs",
-    "format": "prettier --write src *.ts *.mjs package.json tsconfig.json pnpm-workspace.yaml .prettierrc.json",
-    "format:check": "prettier --check src *.ts *.mjs package.json tsconfig.json pnpm-workspace.yaml .prettierrc.json",
+    "lint": "eslint . --ignore-pattern \".claude/**\" --ignore-pattern \".rsc/**\" --ignore-pattern \"01-TOOLS/**\" --ignore-pattern \"02-DOCS/**\" --ignore-pattern \"coverage/**\" --ignore-pattern \"playwright-report/**\" --ignore-pattern \"test-results/**\"",
+    "format": "prettier --write . \"!.rsc.json\"",
+    "format:check": "prettier --check . \"!.rsc.json\"",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

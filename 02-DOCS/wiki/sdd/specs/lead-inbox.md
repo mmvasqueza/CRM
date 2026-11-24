@@ -7,6 +7,7 @@ timestamp: 2026-11-22T18:00:00Z
 topic: sdd
 slug: lead-inbox
 branch: feat/lead-inbox
+branches: [feat/lead-inbox, feat/lead-inbox-foundation]
 status: clarified (approved in autopilot, not item by item)
 ---
 

@@ -30,5 +30,12 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    ".claude",
+    ".rsc",
+    "01-TOOLS",
+    "02-DOCS",
+    "supabase/functions"
+  ]
 }
