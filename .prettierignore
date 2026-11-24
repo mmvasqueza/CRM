@@ -1,0 +1,9 @@
+# Prettier checks app code only (constitution P5). Docs, harness and CI files keep their own format.
+# .gitignore'd paths (node_modules, .next, coverage, …) are skipped automatically.
+.claude/
+.rsc/
+.github/
+01-TOOLS/
+02-DOCS/
+*.md
+pnpm-lock.yaml
