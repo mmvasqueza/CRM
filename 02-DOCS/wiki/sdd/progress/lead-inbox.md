@@ -7,6 +7,7 @@
 |-------|--------|------|
 | specify | spec written, gate PASS | 2026-11-22 |
 | clarify | 7 criteria added (24–30), 8 assumptions recorded, 0 blocking | 2026-11-23 |
+| clarify (owner check) | Owner confirmed the 6 specify-time assumptions as recommended: alerts to all active members; statuses New/Contacted/Qualified/Disqualified; repeat enquiry merges into the open lead; 5 per 10 min and 5,000 chars; new leads unassigned, team claims; owner is first admin | 2026-11-23 |
 | plan | [plan](../plans/lead-inbox.md) written; 11 build steps; 4 owner actions before launch | 2026-11-23 |
 | tasks | 29 tasks (T001–T029) appended to the plan; all 30 criteria covered; 12 tier-2 tasks; delivery in 4 PRs | 2026-11-23 |
 | sdd-init | `config.yaml` written (strict TDD; Vitest, Playwright, pgTAP; autopilot) | 2026-11-23 |

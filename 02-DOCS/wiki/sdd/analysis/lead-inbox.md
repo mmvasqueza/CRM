@@ -72,4 +72,5 @@ slug: lead-inbox
 - #3 resolved in tasks: Interfaces blocks added for T016, T019, T021, T022, T023.
 - #4 resolved in plan: `intake_rate` gets an explicit deny policy.
 - #6 resolved in spec: the 9 points the owner actually answered are marked validated; the 6 specify-time assumptions are labelled "accepted with the autopilot spec; not individually confirmed"; `rsc spec gate` PASS, 19/19 typed.
+- Follow-up 2026-11-23: the owner confirmed those 6 as well (all as recommended); all 15 points are now owner-validated.
 - Tier-1 review of this change (round 1): 0 blockers, 2 should-fix, 4 nits — all fixed (overclaimed validation; T021/T022 carriers incl. AC28 re-invite; AC30 storage assertion in T007; counts; config DB reset).
