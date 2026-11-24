@@ -1,9 +1,9 @@
 # Dependencies & build output
 node_modules/
 .next/
-out/
-dist/
-coverage/
+/out/
+/dist/
+/coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
