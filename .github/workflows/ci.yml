@@ -31,7 +31,7 @@ jobs:
       - id: check
         run: |
           echo "has_app=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "has_db=$([ -f supabase/config.toml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "has_db=$({ [ -f supabase/config.jsonc ] || [ -f supabase/config.toml ]; } && echo true || echo false)" >> "$GITHUB_OUTPUT"
       # Once the app exists, its preconditions are mandatory — fail loudly, never skip silently.
       - name: App preconditions (P3, P8)
         if: steps.check.outputs.has_app == 'true'
@@ -39,7 +39,7 @@ jobs:
           node -e 'const p=require("./package.json"); if(!/^pnpm@/.test(p.packageManager||"")){console.error("package.json must set \"packageManager\": \"pnpm@<version>\" (constitution P3)");process.exit(1)}'
           [ -f pnpm-lock.yaml ] || { echo "pnpm-lock.yaml must be committed (P3)"; exit 1; }
           ls playwright.config.* >/dev/null 2>&1 || { echo "Playwright config required once the app exists (P8)"; exit 1; }
-          [ -f supabase/config.toml ] || { echo "supabase/config.toml required once the app exists (P4)"; exit 1; }
+          { [ -f supabase/config.jsonc ] || [ -f supabase/config.toml ]; } || { echo "supabase/config.jsonc (or config.toml) required once the app exists (P4)"; exit 1; }
 
   # ---- Always-on gates ----------------------------------------------------
   secrets:
@@ -137,7 +137,7 @@ jobs:
           ls supabase/tests/*.sql >/dev/null 2>&1 || { echo "supabase/tests/*.sql required - every table needs RLS policy tests (P16)"; exit 1; }
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.4.0 # same CLI as local; 3.x reads supabase/config.jsonc
       - run: supabase start
       - run: supabase db reset
       - run: supabase test db
@@ -156,7 +156,7 @@ jobs:
           cache: pnpm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.4.0 # same CLI as local; 3.x reads supabase/config.jsonc
       - run: supabase start
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
