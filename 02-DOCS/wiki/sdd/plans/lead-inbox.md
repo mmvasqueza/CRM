@@ -38,7 +38,7 @@ Every task includes these, verbatim. The per-task reviewer reads them first.
 
 ## 1. Context & constraints
 
-- Acceptance criteria that shape the design: spec §AC 1–2c (intake + website), 3–5 (abuse), 6/24/25 (merge rule), 11/26 (ownership under bypass and race), 21–23/29 (async alerts), 27 (last admin), 28 (invite expiry).
+- Acceptance criteria that shape the design: spec §AC 1–2c (intake + website), 3–5 (abuse), 6/24/25 (merge rule), 11/26 (ownership under bypass and race), 21–23/29 (async alerts), 27 (last admin), 28 (invite expiry), 31 (enquiry channel, so chat channels plug in later).
 - Non-functional: P21 (LCP 2.5 s, ≤ 50 rows), P22 (intake p95 500 ms, async email), P17 (intake protections), P18 (PII).
 - Constitution in play: P1–4 stack canon, P7–8 TDD + E2E, P9 Zod, P11 envelope, P15–16 secrets + RLS.
 - Must not creep into: contacts/companies, pipeline, auto-replies, editing what the enquirer sent, assignment emails, charts, multi-tenant (spec §Non-goals).
@@ -141,7 +141,7 @@ leads.list({ page, q?, status?, owner? }) -> { rows ≤ 25, total, page }   user
 
 - **members** — user_id (auth user), email, role (`admin|sales`), active, invited_at, created_at. One row per team member.
 - **leads** — id, email_normalized, name, company, phone, company_size, service, language, status, owner_id → members, consent_at, consent_version, created_at, last_enquiry_at. Contact fields are the first enquiry's, kept as sent.
-- **enquiries** — id, lead_id → leads (cascade), name, company, phone, company_size, service, challenge, language, consent_at, consent_version, submitted_at. One per submission; the lead detail shows them all.
+- **enquiries** — id, lead_id → leads (cascade), channel (NOT NULL, CHECK in the known list: `website` for now), name, company, phone, company_size, service, challenge, language, consent_at, consent_version, submitted_at. One per submission; the lead detail shows them all.
 - **alert_jobs** — id, lead_id → leads (cascade), recipient_id → members, kind (`new_lead|repeat_enquiry`), status (`pending|sent|failed`), attempts, next_attempt_at, first_attempt_at, last_error_code. Admin-readable only.
 - **intake_rate** — key_hash, window_start, count. Service role only: RLS enabled with an explicit `using (false)` policy for `anon` and `authenticated` (P16 letter); old rows purged by pg_cron daily.
 
@@ -188,6 +188,7 @@ active admins; `intake_rate` no access for `anon`/`authenticated`. No INSERT/UPD
 | 27 last admin | pgTAP | demote/deactivate of last admin → LAST_ADMIN | — |
 | 28 invite expiry | config assertion + integration | auth OTP/invite expiry = 86400 s; expired link refused | local Supabase |
 | 30 consent wording | unit (website) + pgTAP | label text per language; consent_version stored | — |
+| 31 enquiry channel | pgTAP | every enquiry (new and merged) stored with `channel = 'website'`; as table owner (RLS bypassed), NULL, `''`, `'Website'`, `' website'` and `'foo'` fail with check/not-null violations (SQLSTATE 23514 / 23502) | — |
 
 - E2E line: the four constitution flows (lead capture, login, role access) plus alerts, against local Supabase in CI.
 - Must be real, never mocked: Postgres + RLS (pgTAP and integration run against `supabase start`), Zod schemas, the route's check order.
@@ -196,7 +197,7 @@ active admins; `intake_rate` no access for `anon`/`authenticated`. No INSERT/UPD
 ## 6. Sequencing & dependencies
 
 1. **Scaffold** — Next.js + TS strict + Tailwind, pnpm, ESLint/Prettier, Vitest (json-summary coverage), Playwright, `supabase init` (sign-up off, invite expiry 24 h), env schema, CI preconditions met — depends on: none — serial. *Tier 2 (next.config, supabase/config.toml).*
-2. **Schema + RLS + functions** — tables, partial unique index, RLS, `submit_enquiry`, `rate_limit_hit`, claim/status/assign/delete, member functions, last-admin trigger, seed; pgTAP for AC 4, 6, 10–15, 24–27 — depends on: #1 — serial. *Tier 2.*
+2. **Schema + RLS + functions** — tables, partial unique index, RLS, `submit_enquiry`, `rate_limit_hit`, claim/status/assign/delete, member functions, last-admin trigger, seed; pgTAP for AC 4, 6, 10–15, 24–27, 31 — depends on: #1 — serial. *Tier 2.*
 3. **Intake domain** — Zod schema, email normalization, PII-safe logger, Turnstile verifier, origin check — depends on: #1 — parallel with #2.
 4. **Intake route** `/api/leads` — wires #3 to `submit_enquiry`; integration tests AC 2–5, 18 — depends on: #2, #3 — serial. *Tier 2.*
 5. **Alert dispatcher** — mail adapter + Resend implementation, template, dispatch with backoff, `/api/alerts/dispatch`, pg_cron schedule migration, `after()` hook in #4 — depends on: #2, #4 — serial. AC 21–23, 29.
@@ -243,11 +244,11 @@ Integration and pgTAP checks run against local Supabase (`supabase start`). "Red
 | --- | --- | --- | --- | --- | --- | --- |
 | T001 |  | Scaffold the Next.js app: TS strict, Tailwind, pnpm (`packageManager`), Node 22 (`.nvmrc`, `engines`), ESLint zero-warnings, Prettier | `pnpm lint --max-warnings=0 && pnpm format:check && pnpm typecheck && pnpm build` all exit 0 | — | AC1 (enabler; P1–P6) | 2 |
 | T002 |  | Add test harness: Vitest + Testing Library with `json-summary` coverage, Playwright config, scripts `test:coverage`, `test:e2e` | `pnpm test:coverage` writes `coverage/coverage-summary.json`; `pnpm test:e2e --list` exits 0 | T001 | AC1 (enabler; P7–P8) | 1 |
-| T003 |  | Initialise Supabase locally: sign-up disabled, invite/OTP expiry 86400 s, mail catcher on | `supabase start` succeeds; `tests/config/supabase-config.test.ts` red→green asserting `enable_signup = false` and `otp_expiry = 86400` | T001 | AC9, AC28 | 2 |
+| T003 |  | Initialise Supabase locally: sign-up disabled, invite/OTP expiry 86400 s, mail catcher on | `supabase start` succeeds; `tests/config/supabase-config.test.ts` red→green on `supabase/config.jsonc` (Supabase CLI 3.x format; CI pins CLI 3.4.0) asserting `auth.enable_signup = false` and `auth.email.otp_expiry = 86400` | T001 | AC9, AC28 | 2 |
 | T004 |  | Add env schema (Zod) and Supabase clients: browser, server (user session), admin (service role, `server-only`) | `src/lib/env.test.ts` red→green: missing/invalid var throws with the var name; admin module imports `server-only` | T001, T002 | AC1 (enabler; P9, P15) | 2 |
 | T005 |  | Migrate `members` + role/active helper functions + RLS + last-admin trigger | `supabase db reset` applies; `supabase/tests/members.test.sql` red→green: active member reads, inactive denied, anon denied, demoting/deactivating last admin raises `LAST_ADMIN` | T003 | AC12, AC15, AC27 | 2 |
-| T006 |  | Migrate `leads` + `enquiries` + partial unique index on open `email_normalized` + RLS (read for active members, no direct writes) | `supabase/tests/leads_rls.test.sql` red→green: sales/admin SELECT all; direct INSERT/UPDATE/DELETE by `authenticated` and `anon` denied, row unchanged | T005 | AC11, AC12 | 2 |
-| T007 |  | Migrate `submit_enquiry`, `rate_limit_hit`, `intake_rate`, `alert_jobs` | `supabase/tests/intake.test.sql` red→green: new lead + enquiry + jobs for all active; merge on same / odd-cased email; disqualified → new lead; owner-only recipients on repeat; `consent_at` + `consent_version` stored on lead and enquiry; 6th hit in window refused | T006 | AC4, AC6, AC21, AC23, AC24, AC25, AC30 | 2 |
+| T006 |  | Migrate `leads` + `enquiries` (with a `channel` column limited to the known channels, `website` for now) + partial unique index on open `email_normalized` + RLS (read for active members, no direct writes) | `supabase/tests/leads_rls.test.sql` red→green: sales/admin SELECT all; direct INSERT/UPDATE/DELETE by `authenticated` and `anon` denied, row unchanged; as table owner (RLS bypassed) a NULL, empty, wrong-case, space-padded or unknown `channel` fails with SQLSTATE 23514/23502, not an RLS error | T005 | AC11, AC12, AC31 | 2 |
+| T007 |  | Migrate `submit_enquiry`, `rate_limit_hit`, `intake_rate`, `alert_jobs` | `supabase/tests/intake.test.sql` red→green: new lead + enquiry + jobs for all active; merge on same / odd-cased email; disqualified → new lead; owner-only recipients on repeat; `consent_at` + `consent_version` stored on lead and enquiry; 6th hit in window refused; both the first and the merged repeat enquiry are stored with `channel = 'website'`, though `p` carries no channel | T006 | AC4, AC6, AC21, AC23, AC24, AC25, AC30, AC31 | 2 |
 | T008 | [P] | Migrate `claim_lead`, `set_lead_status`, `assign_lead`, `delete_lead`, `set_member_role`, `set_member_active` | `supabase/tests/lead_actions.test.sql` red→green: claim race → one `ALREADY_TAKEN`; sales on others' lead → `FORBIDDEN`, unchanged; admin assign/status saved; delete cascades; last admin → `LAST_ADMIN` | T006 | AC10, AC11, AC13, AC14, AC26, AC27 | 2 |
 | T009 | [P] | Implement intake Zod schema + email normalisation | `src/features/leads/intake/schema.test.ts` red→green: required fields, enums, consent must be `true`, challenge ≤ 5,000, returns field names on error, `" Ana@X.com "` → `ana@x.com` | T002 | AC2, AC2b, AC25 | 1 |
 | T010 | [P] | Implement PII-safe logger | `src/lib/log.test.ts` red→green: name/email/phone/company/challenge/ip keys rejected or stripped; only id, request id, outcome, duration emitted | T002 | AC18 | 1 |
@@ -267,12 +268,13 @@ Integration and pgTAP checks run against local Supabase (`supabase start`). "Red
 | T024 |  | Pass accessibility: keyboard-only + axe | `e2e/a11y.spec.ts`: 0 axe violations on `/login`, `/leads`, `/leads/[id]`, `/members`; every action reachable by Tab with visible focus; usable at 360 px | T019–T023 | AC19 | 1 |
 | T025 |  | E2E lead capture + alert | `e2e/lead-capture.spec.ts`: POST as the website → lead top of list as New/Unassigned; alert in capture mailbox with link, without email/phone/challenge | T012, T014, T019 | AC1, AC21 | 1 |
 | T026 |  | E2E login + role access | `e2e/roles.spec.ts`: signed-out redirect; sales sees all, cannot change others' lead (UI + direct call); admin reassigns and changes status | T021, T022 | AC7, AC8, AC11, AC12, AC13 | 1 |
+| T030 |  | Security headers on every CRM response: CSP (`frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (owner decision 2026-11-23, T001 review L28) | `src/config/security-headers.test.ts` red→green: the `headers()` config applies all three to `/:path*`; `e2e/roles.spec.ts` asserts them on `/login` | T001, T017 | P16–P18 (security floor; no AC) | 2 (`next.config.ts` is a deploy path) |
 | T027 |  | Website form (DigitalSystemPro, branch off `Desarrollo`): submit to CRM, consent checkbox + wording v1 (es/en), honeypot, Turnstile widget, success only on 201, error with retry + WhatsApp | website `src/pages/Contact.test.tsx` (Vitest + Testing Library added) red→green: success only on 201; field errors on 400; no submit without consent; network/500 → error with WhatsApp; consent label per language + version sent | T012 (contract) | AC1, AC2, AC2b, AC2c, AC30 | 1 (other repo) |
 | T028 |  | Seed 1,000 test leads on a preview deploy; measure LCP and intake p95 | `scripts/measure-intake.ts` p95 ≤ 500 ms over 100 submissions; lab LCP ≤ 2.5 s on `/leads` (laptop profile, throttled 4G — P21); numbers recorded in progress | T025, T027 | AC16, AC17 | 1 |
 | T029 |  | Close: all done-checks pass, CI green, coverage ≥ 80 %, closing review | every row above checked; CI run green on the PR; closing review recorded in `sdd/reviews/lead-inbox.md` | all | all ACs | — |
 
 **T007 — Interfaces**
-- Produces: `public.submit_enquiry(p jsonb) returns table(lead_id uuid, merged boolean, alert_recipients uuid[])`, executable by `service_role` only. `p` keys: `name, company, email, phone, company_size, service, challenge, language, consent_at, consent_version`.
+- Produces: `public.submit_enquiry(p jsonb) returns table(lead_id uuid, merged boolean, alert_recipients uuid[])`, executable by `service_role` only. `p` keys: `name, company, email, phone, company_size, service, challenge, language, consent_at, consent_version`. No `channel` key: the function itself writes `channel = 'website'` (AC31), so a caller cannot pick or spoof it; chat channels get their own intake path in their spec.
 - Produces: `public.rate_limit_hit(p_key_hash text) returns boolean` (true = allowed; 5 per 10 min).
 - Produces: `alert_jobs(status in ('pending','sent','failed'), kind in ('new_lead','repeat_enquiry'), attempts int, next_attempt_at, first_attempt_at)`.
 
@@ -317,4 +319,4 @@ Integration and pgTAP checks run against local Supabase (`supabase start`). "Red
 | Estimated changed lines | 4,000–6,000 (≈ 40 % tests) | 29 tasks across scaffold, SQL, API, UI, E2E, website |
 | Files / areas | ~70 files: config, `supabase/migrations` + `tests`, `src/lib`, `src/features/{leads,auth,email}`, `src/app`, `e2e`, website `Contact.tsx` | |
 | Risk | max tier 2; 12 tier-2 tasks (T001, T003–T008, T012, T015–T017, T022), likely 13 after content scoring (T014) | each needs the 3-refuter panel and the owner's approval |
-| Suggested delivery | **ask-on-risk, in 4 PRs** — far over the 400-line review budget | A: foundation T001–T008 · B: intake + alerts T009–T015 · C: auth + screens + E2E T016–T026 · D: website T027 (other repo) · then T028–T029. Branch for each PR asked before it starts (main is closed). |
+| Suggested delivery | **ask-on-risk, in 4 PRs** — far over the 400-line review budget | A: foundation T001–T008 · B: intake + alerts T009–T015 · C: auth + screens + E2E T016–T026, T030 · D: website T027 (other repo) · then T028–T029. Branch for each PR asked before it starts (main is closed). |
